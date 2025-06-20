@@ -11,13 +11,16 @@ EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
 # Ensure openpyxl is installed
-
+try:
     import openpyxl
 except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
     import openpyxl
 
 # Load inventory
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
 else:
@@ -31,7 +34,7 @@ else:
 
 # Save inventory and logs
 def save_inventory(df):
-    with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+    with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={"keep_vba": True}) as writer:
         df.to_excel(writer, index=False)
 
 def log_action(action, name, barcode, qty, user):
@@ -104,3 +107,4 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
+
