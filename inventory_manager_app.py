@@ -10,12 +10,7 @@ import streamlit.components.v1 as components
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
-# Ensure openpyxl is installed
-try:
-    import openpyxl
-except ImportError:
-    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
-    import openpyxl
+import openpyxl
 
 # Load inventory
 import warnings
@@ -55,15 +50,21 @@ st.title("Inventory & Supply Room Manager")
 
 # User name input
 st.sidebar.subheader("User Access")
-input_name = st.sidebar.text_input("Enter your name to continue")
-username = ""
+
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+input_name = st.sidebar.text_input("Enter your name to continue", value=st.session_state.username)
 if st.sidebar.button("Submit Name"):
     if input_name.strip():
-        username = input_name.strip()
+        st.session_state.username = input_name.strip()
     else:
         st.sidebar.warning("Please enter your name")
 
-if not username:
+if not st.session_state.username:
+    st.stop()
+
+username = st.session_state.username
     st.stop()
 
 # Inventory interaction interface
@@ -75,6 +76,7 @@ st.subheader("Check Out or Return Items")
 
 with st.form("check_form"):
     barcode = st.text_input("Scan or enter item barcode")
+st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
