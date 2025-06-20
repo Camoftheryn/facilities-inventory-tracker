@@ -11,7 +11,7 @@ EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
 # Ensure openpyxl is installed
-try:
+
     import openpyxl
 except ImportError:
     subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
