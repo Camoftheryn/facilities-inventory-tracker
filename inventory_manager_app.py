@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+import subprocess
+import sys
 import os
 from datetime import datetime
 import streamlit.components.v1 as components
@@ -7,6 +9,13 @@ import streamlit.components.v1 as components
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
+
+# Ensure openpyxl is installed
+try:
+    import openpyxl
+except ImportError:
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'openpyxl'])
+    import openpyxl
 
 # Load inventory
 if os.path.exists(EXCEL_FILE):
