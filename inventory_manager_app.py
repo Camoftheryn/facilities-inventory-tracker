@@ -18,6 +18,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
+inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
 else:
     inventory_df = pd.DataFrame(columns=["Name", "Barcode", "Location", "Quantity", "Unit", "Threshold", "Notes", "Last Updated"])
 
@@ -81,22 +82,24 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        match = inventory_df[inventory_df["Barcode"] == barcode]
+        match = inventory_df[inventory_df["Tool ID"] == barcode]
         if not match.empty:
             index = match.index[0]
-            current_qty = match.at[index, "Quantity"]
-            item_name = match.at[index, "Name"]
+            current_qty = match.at[index, "Running Total"]
+            item_name = match.at[index, "Tool ID"]
 
             if action_type == "Check Out":
                 if current_qty >= quantity:
-                    inventory_df.at[index, "Quantity"] -= quantity
+                    inventory_df.at[index, "Running Total"] -= quantity
+                    inventory_df.at[index, "Checked Out Qty"] += quantity
                     log_action("Checked Out", item_name, barcode, quantity, username)
                     st.success(f"Checked out {quantity} of {item_name}")
                 else:
                     st.error("Not enough stock available")
 
             elif action_type == "Return":
-                inventory_df.at[index, "Quantity"] += quantity
+                inventory_df.at[index, "Running Total"] += quantity
+                inventory_df.at[index, "Checked Out Qty"] -= quantity
                 log_action("Returned", item_name, barcode, quantity, username)
                 st.success(f"Returned {quantity} of {item_name}")
 
@@ -108,4 +111,3 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-
