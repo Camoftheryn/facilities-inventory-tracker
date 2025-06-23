@@ -82,7 +82,7 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        match = inventory_df[inventory_df["Tool ID"] == barcode]
+        match = inventory_df[inventory_df["Tool ID"].astype(str).str.strip() == str(barcode).strip()]
         if not match.empty:
             index = match.index[0]
             current_qty = match.at[index, "Running Total"]
@@ -111,4 +111,3 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-
