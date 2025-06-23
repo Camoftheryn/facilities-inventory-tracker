@@ -30,13 +30,6 @@ if os.path.exists(EXCEL_FILE):
 
 else:
     inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
-st.markdown("---")
-st.subheader("Inventory Log History")
-
-if not log_df.empty:
-    st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-else:
-    st.info("No log entries yet.")
 
 # Load log
 if os.path.exists(LOG_FILE):
@@ -131,3 +124,12 @@ with st.form("check_form"):
 
         else:
             st.error("Item not found. Please check the barcode.")
+# --- Display the inventory log ---
+st.markdown("---")
+st.subheader("Inventory Log History")
+
+if not log_df.empty:
+    st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
+else:
+    st.info("No log entries yet.")
+
