@@ -112,9 +112,9 @@ st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
 
-# Clean the 'checked in' and 'checked out' columns by removing asterisks if present
-df['checked in'] = df['checked in'].astype(str).str.replace('*', '', regex=False)
-df['checked out'] = df['checked out'].astype(str).str.replace('*', '', regex=False)
+# Clean the 'check in' and 'check out' columns by removing asterisks if present
+df['check in'] = df['check in'].astype(str).str.replace('*', '', regex=False)
+df['check out'] = df['check out'].astype(str).str.replace('*', '', regex=False)
 
 # Now, when you search barcodes, only look in the barcode column exactly as it is
 barcode_to_find = scanned_barcode.strip()  # the barcode from scan
