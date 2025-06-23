@@ -18,14 +18,23 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # Load inventory
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
-    inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
 
-    # Clean the 'check in' and 'check out' columns by removing asterisks if present
-    inventory_df['check in'] = inventory_df['check in'].astype(str).str.replace('*', '', regex=False)
-    inventory_df['check out'] = inventory_df['check out'].astype(str).str.replace('*', '', regex=False)
+    # Normalize column names to lowercase with underscores for easy access
+    inventory_df.columns = inventory_df.columns.str.strip().str.lower().str.replace(' ', '_')
+
+    # Print column names for debugging (optional)
+    print("Inventory columns:", inventory_df.columns.tolist())
+
+    # Clean the 'check_in' and 'check_out' columns by removing asterisks
+    if 'check_in' in inventory_df.columns:
+        inventory_df['check_in'] = inventory_df['check_in'].astype(str).str.replace('*', '', regex=False)
+    if 'check_out' in inventory_df.columns:
+        inventory_df['check_out'] = inventory_df['check_out'].astype(str).str.replace('*', '', regex=False)
 
 else:
-    inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
+    inventory_df = pd.DataFrame(columns=[
+        "tool_id", "check_in", "check_out", "total_count", "checked_out_qty", "running_total"
+    ])
 
 # Load log
 if os.path.exists(LOG_FILE):
@@ -87,11 +96,11 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        match = inventory_df[inventory_df["Tool ID"].astype(str).str.strip() == str(barcode).strip()]
+        match = inventory_df[inventory_df["tool_id"].astype(str).str.strip() == str(barcode).strip()]
         if not match.empty:
             index = match.index[0]
-            current_qty = match.at[index, "Running Total"]
-            item_name = match.at[index, "Tool ID"]
+            current_qty = match.at[index, "running_total"]
+            item_name = match.at[index, "tool_id"]
 
             if action_type == "Check Out":
                 if current_qty >= quantity:
@@ -103,8 +112,8 @@ with st.form("check_form"):
                     st.error("Not enough stock available")
 
             elif action_type == "Return":
-                inventory_df.at[index, "Running Total"] += quantity
-                inventory_df.at[index, "Checked Out Qty"] -= quantity
+                inventory_df.at[index, "running_total"] += quantity
+                inventory_df.at[index, "checked_out_qty"] -= quantity
                 log_action("Returned", item_name, barcode, quantity, username)
                 st.success(f"Returned {quantity} of {item_name}")
 
