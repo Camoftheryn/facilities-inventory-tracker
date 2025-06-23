@@ -5,20 +5,25 @@ import sys
 import os
 from datetime import datetime
 import streamlit.components.v1 as components
+import openpyxl
+import warnings
 
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
-import openpyxl
-
-# Load inventory
-import warnings
+# Suppress openpyxl warning
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
+# Load inventory
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
     inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
+
+    # Clean the 'check in' and 'check out' columns by removing asterisks if present
+    inventory_df['check in'] = inventory_df['check in'].astype(str).str.replace('*', '', regex=False)
+    inventory_df['check out'] = inventory_df['check out'].astype(str).str.replace('*', '', regex=False)
+
 else:
     inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
 
@@ -107,22 +112,3 @@ with st.form("check_form"):
             save_inventory(inventory_df)
         else:
             st.error("Item not found. Please check the barcode.")
-
-st.markdown("---")
-st.subheader("Log of Checkouts and Returns")
-st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-
-# Clean the 'check in' and 'check out' columns by removing asterisks if present
-df['check in'] = df['check in'].astype(str).str.replace('*', '', regex=False)
-df['check out'] = df['check out'].astype(str).str.replace('*', '', regex=False)
-# Now, when you search barcodes, only look in the barcode column exactly as it is
-barcode_to_find = scanned_barcode.strip()  # the barcode from scan
-
-# Find matching row by barcode
-matched_row = df[df['barcode'] == barcode_to_find]
-if matched_row.empty:
-    print("Barcode not found. Please check the barcode.")
-else:
-    # Proceed with your check-in/check-out logic
-    pass
-print(df.columns.tolist())
