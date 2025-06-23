@@ -112,9 +112,18 @@ st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
 
-# Remove * from Tool ID and barcode before comparison
-cleaned_df = inventory_df.copy()
-cleaned_df["Tool ID"] = cleaned_df["Tool ID"].astype(str).str.strip().str.strip("*")
-cleaned_barcode = str(barcode).strip().strip("*")
+# Clean the 'checked in' and 'checked out' columns by removing asterisks if present
+df['checked in'] = df['checked in'].astype(str).str.replace('*', '', regex=False)
+df['checked out'] = df['checked out'].astype(str).str.replace('*', '', regex=False)
 
-match = cleaned_df[cleaned_df["Tool ID"] == cleaned_barcode]
+# Now, when you search barcodes, only look in the barcode column exactly as it is
+barcode_to_find = scanned_barcode.strip()  # the barcode from scan
+
+# Find matching row by barcode
+matched_row = df[df['barcode'] == barcode_to_find]
+
+if matched_row.empty:
+    print("Barcode not found. Please check the barcode.")
+else:
+    # Proceed with your check-in/check-out logic
+    pass
