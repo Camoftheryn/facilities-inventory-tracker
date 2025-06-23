@@ -111,3 +111,10 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
+
+# Remove * from Tool ID and barcode before comparison
+cleaned_df = inventory_df.copy()
+cleaned_df["Tool ID"] = cleaned_df["Tool ID"].astype(str).str.strip().str.strip("*")
+cleaned_barcode = str(barcode).strip().strip("*")
+
+match = cleaned_df[cleaned_df["Tool ID"] == cleaned_barcode]
