@@ -18,9 +18,9 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
-inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
+    inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
 else:
-    inventory_df = pd.DataFrame(columns=["Name", "Barcode", "Location", "Quantity", "Unit", "Threshold", "Notes", "Last Updated"])
+    inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
 
 # Load log
 if os.path.exists(LOG_FILE):
@@ -111,3 +111,4 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
+
