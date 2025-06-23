@@ -116,12 +116,6 @@ st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
 df['check in'] = df['check in'].astype(str).str.replace('*', '', regex=False)
 df['check out'] = df['check out'].astype(str).str.replace('*', '', regex=False)
 
-# Now, when you search barcodes, only look in the barcode column exactly as it is
-barcode_to_find = scanned_barcode.strip()  # the barcode from scan
-
-# Find matching row by barcode
-matched_row = df[df['barcode'] == barcode_to_find]
-
 if matched_row.empty:
     print("Barcode not found. Please check the barcode.")
 else:
