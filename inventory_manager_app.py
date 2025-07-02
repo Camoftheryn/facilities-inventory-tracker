@@ -83,7 +83,7 @@ with st.form("check_form"):
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
     if submitted:
-        st.session_state["barcode_input"] = ""
+        st.experimental_rerun()
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
             == str(barcode).strip().strip("*").lower()
