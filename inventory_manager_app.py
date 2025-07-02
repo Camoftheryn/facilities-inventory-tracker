@@ -5,29 +5,20 @@ import sys
 import os
 from datetime import datetime
 import streamlit.components.v1 as components
-import openpyxl
-import warnings
 
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
-# Suppress openpyxl warning
-warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+import openpyxl
 
 # Load inventory
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
-    inventory_df.columns = inventory_df.columns.str.strip()
-
-    # Clean barcode-related columns by removing asterisks and normalizing
-    inventory_df['check in'] = inventory_df['check in'].astype(str).str.replace('*', '', regex=False).str.strip().str.lower()
-    inventory_df['check out'] = inventory_df['check out'].astype(str).str.replace('*', '', regex=False).str.strip().str.lower()
-
-    # Also prepare columns to use for barcode matching (cleaned versions)
-    inventory_df['check_in_clean'] = inventory_df['check in']
-    inventory_df['check_out_clean'] = inventory_df['check out']
-
+    inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
 else:
     inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
 
@@ -78,7 +69,7 @@ username = st.session_state.username
 
 # Inventory interaction interface
 st.subheader("Inventory Table")
-st.dataframe(inventory_df.drop(columns=["check_in_clean", "check_out_clean"], errors="ignore"))
+st.dataframe(inventory_df)
 
 st.markdown("---")
 st.subheader("Check Out or Return Items")
@@ -90,20 +81,18 @@ with st.form("check_form"):
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
-submitted = st.form_submit_button("Submit")
+    submitted = st.form_submit_button("Submit")
     if submitted:
         st.session_state.barcode = ""
 
-        # Find row where barcode matches either 'check in' or 'check out'
         match = inventory_df[
-            (inventory_df['check_in_clean'] == scanned) |
-            (inventory_df['check_out_clean'] == scanned)
+            inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
+            == str(barcode).strip().strip("*").lower()
         ]
-
         if not match.empty:
             index = match.index[0]
-            current_qty = inventory_df.at[index, "Running Total"]
-            item_name = inventory_df.at[index, "Tool ID"]
+            current_qty = match.at[index, "Running Total"]
+            item_name = match.at[index, "Tool ID"]
 
             if action_type == "Check Out":
                 if current_qty >= quantity:
@@ -122,15 +111,38 @@ submitted = st.form_submit_button("Submit")
 
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
-
         else:
             st.error("Item not found. Please check the barcode.")
-# --- Display the inventory log ---
-st.markdown("---")
-st.subheader("Inventory Log History")
+        match = inventory_df[
+            inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
+            == str(barcode).strip().strip("*").lower()
+        ]
+        if not match.empty:
+            index = match.index[0]
+            current_qty = match.at[index, "Running Total"]
+            item_name = match.at[index, "Tool ID"]
 
-if not log_df.empty:
-    st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-else:
-    st.info("No log entries yet.")
+            if action_type == "Check Out":
+                if current_qty >= quantity:
+                    inventory_df.at[index, "Running Total"] -= quantity
+                    inventory_df.at[index, "Checked Out Qty"] += quantity
+                    log_action("Checked Out", item_name, barcode, quantity, username)
+                    st.success(f"Checked out {quantity} of {item_name}")
+                else:
+                    st.error("Not enough stock available")
+
+            elif action_type == "Return":
+                inventory_df.at[index, "Running Total"] += quantity
+                inventory_df.at[index, "Checked Out Qty"] -= quantity
+                log_action("Returned", item_name, barcode, quantity, username)
+                st.success(f"Returned {quantity} of {item_name}")
+
+            inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
+            save_inventory(inventory_df)
+        else:
+            st.error("Item not found. Please check the barcode.")
+
+st.markdown("---")
+st.subheader("Log of Checkouts and Returns")
+st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
 
