@@ -15,8 +15,6 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # Initialize session state variables early
 if "username" not in st.session_state:
     st.session_state.username = ""
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
 if "clear_barcode" not in st.session_state:
     st.session_state.clear_barcode = False
 
@@ -118,9 +116,9 @@ with st.form("check_form"):
 
 # Clear input field after form submission
 if st.session_state.clear_barcode:
-    st.session_state.barcode_input = ""
     st.session_state.clear_barcode = False
-    st.rerun()
+    st.session_state.pop("barcode_input", None)
+    st.experimental_rerun()
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
