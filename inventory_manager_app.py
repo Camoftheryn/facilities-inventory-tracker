@@ -91,7 +91,7 @@ with st.form("check_form"):
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
 submitted = st.form_submit_button("Submit")
-    if submitted:
+if submitted:
         st.session_state.barcode = ""
 
     if submitted:
