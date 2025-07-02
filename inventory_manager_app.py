@@ -76,10 +76,11 @@ st.dataframe(inventory_df)
 st.markdown("---")
 st.subheader("Check Out or Return Items")
 
-# Clear barcode input before rendering if flagged
+# Clear barcode input if flagged
 if st.session_state.clear_barcode_input:
-    st.session_state.pop("barcode_input", None)
     st.session_state.clear_barcode_input = False
+    st.session_state.barcode_input = ""
+    st.rerun()
 
 with st.form("check_form"):
     barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
