@@ -84,11 +84,15 @@ st.markdown("---")
 st.subheader("Check Out or Return Items")
 
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode")
+    if "barcode" not in st.session_state:
+        st.session_state.barcode = ""
+    barcode = st.text_input("Scan or enter item barcode", value=st.session_state.barcode)
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
-    submitted = st.form_submit_button("Submit")
+submitted = st.form_submit_button("Submit")
+    if submitted:
+        st.session_state.barcode = ""
 
     if submitted:
         scanned = str(barcode).strip().lower()
