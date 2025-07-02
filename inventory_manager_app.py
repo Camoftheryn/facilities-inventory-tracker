@@ -114,7 +114,7 @@ with st.form("check_form"):
             st.error("Item not found. Please check the barcode.")
 
         # Clear barcode input after submission
-        st.session_state["barcode_input"] = ""
+        st.experimental_set_query_params(barcode_input="")
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
