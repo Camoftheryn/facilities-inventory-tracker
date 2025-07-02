@@ -1,21 +1,18 @@
 import streamlit as st
 import pandas as pd
-import subprocess
-import sys
 import os
 from datetime import datetime
-import streamlit.components.v1 as components
+import openpyxl
+import warnings
 
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
 LOG_FILE = "inventory_log.csv"
 
-import openpyxl
-
-# Load inventory
-import warnings
+# Suppress openpyxl warning
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
+# Load inventory
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
     inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
@@ -74,9 +71,10 @@ st.dataframe(inventory_df)
 st.markdown("---")
 st.subheader("Check Out or Return Items")
 
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+
 with st.form("check_form"):
-    if "barcode" not in st.session_state:
-        st.session_state.barcode = ""
     barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
@@ -114,7 +112,8 @@ with st.form("check_form"):
             st.error("Item not found. Please check the barcode.")
 
         # Clear barcode input after submission
-        st.experimental_set_query_params(barcode_input="")
+        st.session_state["barcode_input"] = ""
+        st.rerun()
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
