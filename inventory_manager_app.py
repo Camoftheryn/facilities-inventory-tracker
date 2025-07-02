@@ -4,7 +4,6 @@ import os
 from datetime import datetime
 import openpyxl
 import warnings
-import uuid
 
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
@@ -16,8 +15,10 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # Initialize session state variables early
 if "username" not in st.session_state:
     st.session_state.username = ""
-if "clear_barcode" not in st.session_state:
-    st.session_state.clear_barcode = False
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+if "status_message" not in st.session_state:
+    st.session_state.status_message = None
 
 # Load inventory
 if os.path.exists(EXCEL_FILE):
@@ -75,18 +76,15 @@ st.dataframe(inventory_df)
 st.markdown("---")
 st.subheader("Check Out or Return Items")
 
-# Generate a new key to clear the input if needed
-barcode_key = f"barcode_input_{uuid.uuid4()}" if st.session_state.clear_barcode else "barcode_input"
-
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode", key=barcode_key)
+    barcode = st.text_input("Scan or enter item barcode", key="barcode_input", value=st.session_state.barcode_input)
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        st.session_state.clear_barcode = True  # Clear input next render
+        st.session_state.barcode_input = ""  # Clear the input box
 
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
@@ -118,17 +116,13 @@ with st.form("check_form"):
             st.session_state.status_message = ("error", "Item not found. Please check the barcode.")
 
 # Show status message if available
-if "status_message" in st.session_state:
+if st.session_state.status_message:
     msg_type, msg_text = st.session_state.status_message
     if msg_type == "success":
         st.success(msg_text)
     elif msg_type == "error":
         st.error(msg_text)
-    # Clear message after showing it once
-    del st.session_state.status_message
-
-# Reset the clear flag
-st.session_state.clear_barcode = False
+    st.session_state.status_message = None  # Clear after showing
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
