@@ -111,6 +111,9 @@ with st.form("check_form"):
             save_inventory(inventory_df)
         else:
             st.error("Item not found. Please check the barcode.")
+
+        # Clear barcode input after submission
+        st.session_state["barcode_input"] = ""
             st.error("Item not found. Please check the barcode.")
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
