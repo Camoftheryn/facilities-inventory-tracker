@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 import openpyxl
 import warnings
+import uuid
 
 # File paths
 EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
@@ -74,14 +75,19 @@ st.dataframe(inventory_df)
 st.markdown("---")
 st.subheader("Check Out or Return Items")
 
+# Generate a new key to clear the input if needed
+barcode_key = f"barcode_input_{uuid.uuid4()}" if st.session_state.clear_barcode else "barcode_input"
+
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
+    barcode = st.text_input("Scan or enter item barcode", key=barcode_key)
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
 
     if submitted:
+        st.session_state.clear_barcode = True  # Mark to clear input on next render
+
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
             == str(barcode).strip().strip("*").lower()
@@ -111,14 +117,8 @@ with st.form("check_form"):
         else:
             st.error("Item not found. Please check the barcode.")
 
-        # Mark for clearing input and rerun after form
-        st.session_state.clear_barcode = True
-
-# Clear input field after form submission
-if st.session_state.clear_barcode:
-    st.session_state.clear_barcode = False
-    st.session_state.pop("barcode_input", None)
-    st.rerun()
+# Reset the flag after rendering
+st.session_state.clear_barcode = False
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
