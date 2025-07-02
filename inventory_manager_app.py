@@ -73,6 +73,8 @@ st.subheader("Check Out or Return Items")
 
 if "barcode_input" not in st.session_state:
     st.session_state.barcode_input = ""
+if "clear_barcode" not in st.session_state:
+    st.session_state.clear_barcode = False
 
 with st.form("check_form"):
     barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
@@ -111,9 +113,14 @@ with st.form("check_form"):
         else:
             st.error("Item not found. Please check the barcode.")
 
-        # Clear barcode input after submission
-        st.session_state["barcode_input"] = ""
-        st.rerun()
+        # Mark for clearing input and rerun after form
+        st.session_state.clear_barcode = True
+
+# Clear input field after form submission
+if st.session_state.clear_barcode:
+    st.session_state.barcode_input = ""
+    st.session_state.clear_barcode = False
+    st.rerun()
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
