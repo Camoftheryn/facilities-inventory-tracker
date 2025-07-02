@@ -12,6 +12,14 @@ LOG_FILE = "inventory_log.csv"
 # Suppress openpyxl warning
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
+# Initialize session state variables early
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
+if "clear_barcode" not in st.session_state:
+    st.session_state.clear_barcode = False
+
 # Load inventory
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
@@ -49,9 +57,6 @@ st.title("Inventory & Supply Room Manager")
 # User name input
 st.sidebar.subheader("User Access")
 
-if "username" not in st.session_state:
-    st.session_state.username = ""
-
 input_name = st.sidebar.text_input("Enter your name to continue", value=st.session_state.username)
 if st.sidebar.button("Submit Name"):
     if input_name.strip():
@@ -70,11 +75,6 @@ st.dataframe(inventory_df)
 
 st.markdown("---")
 st.subheader("Check Out or Return Items")
-
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
-if "clear_barcode" not in st.session_state:
-    st.session_state.clear_barcode = False
 
 with st.form("check_form"):
     barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
