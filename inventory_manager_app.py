@@ -77,13 +77,13 @@ st.subheader("Check Out or Return Items")
 with st.form("check_form"):
     if "barcode" not in st.session_state:
         st.session_state.barcode = ""
-    barcode = st.text_input("Scan or enter item barcode", key="barcode")
+    barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
     if submitted:
-        st.session_state.barcode = ""
+        st.session_state["barcode_input"] = ""
         st.experimental_rerun()
 
         match = inventory_df[
