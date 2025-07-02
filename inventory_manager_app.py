@@ -83,7 +83,6 @@ with st.form("check_form"):
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
     if submitted:
-        st.experimental_rerun()
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
             == str(barcode).strip().strip("*").lower()
@@ -145,3 +144,4 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
+
