@@ -86,7 +86,7 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        st.session_state.clear_barcode = True  # Mark to clear input on next render
+        st.session_state.clear_barcode = True  # Clear input next render
 
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
@@ -102,22 +102,32 @@ with st.form("check_form"):
                     inventory_df.at[index, "Running Total"] -= quantity
                     inventory_df.at[index, "Checked Out Qty"] += quantity
                     log_action("Checked Out", item_name, barcode, quantity, username)
-                    st.success(f"Checked out {quantity} of {item_name}")
+                    st.session_state.status_message = ("success", f"Checked out {quantity} of {item_name}")
                 else:
-                    st.error("Not enough stock available")
+                    st.session_state.status_message = ("error", "Not enough stock available")
 
             elif action_type == "Return":
                 inventory_df.at[index, "Running Total"] += quantity
                 inventory_df.at[index, "Checked Out Qty"] -= quantity
                 log_action("Returned", item_name, barcode, quantity, username)
-                st.success(f"Returned {quantity} of {item_name}")
+                st.session_state.status_message = ("success", f"Returned {quantity} of {item_name}")
 
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
         else:
-            st.error("Item not found. Please check the barcode.")
+            st.session_state.status_message = ("error", "Item not found. Please check the barcode.")
 
-# Reset the flag after rendering
+# Show status message if available
+if "status_message" in st.session_state:
+    msg_type, msg_text = st.session_state.status_message
+    if msg_type == "success":
+        st.success(msg_text)
+    elif msg_type == "error":
+        st.error(msg_text)
+    # Clear message after showing it once
+    del st.session_state.status_message
+
+# Reset the clear flag
 st.session_state.clear_barcode = False
 
 st.markdown("---")
