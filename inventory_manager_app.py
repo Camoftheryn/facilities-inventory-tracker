@@ -118,7 +118,7 @@ with st.form("check_form"):
 if st.session_state.clear_barcode:
     st.session_state.clear_barcode = False
     st.session_state.pop("barcode_input", None)
-    st.experimental_rerun()
+    st.rerun()
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
