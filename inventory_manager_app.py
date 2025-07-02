@@ -15,8 +15,6 @@ warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 # Initialize session state variables early
 if "username" not in st.session_state:
     st.session_state.username = ""
-if "barcode_input" not in st.session_state:
-    st.session_state.barcode_input = ""
 if "status_message" not in st.session_state:
     st.session_state.status_message = None
 
@@ -77,14 +75,15 @@ st.markdown("---")
 st.subheader("Check Out or Return Items")
 
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode", key="barcode_input", value=st.session_state.barcode_input)
+    barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        st.session_state.barcode_input = ""  # Clear the input box
+        # Safely clear the input box
+        st.session_state.pop("barcode_input", None)
 
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
