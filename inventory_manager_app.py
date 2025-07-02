@@ -19,6 +19,8 @@ if "status_message" not in st.session_state:
     st.session_state.status_message = None
 if "clear_barcode_input" not in st.session_state:
     st.session_state.clear_barcode_input = False
+if "barcode_input" not in st.session_state:
+    st.session_state.barcode_input = ""
 
 # Load inventory
 if os.path.exists(EXCEL_FILE):
@@ -83,7 +85,7 @@ if st.session_state.clear_barcode_input:
     st.rerun()
 
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
+    barcode = st.text_input("Scan or enter item barcode", key="barcode_input", value=st.session_state.barcode_input)
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
