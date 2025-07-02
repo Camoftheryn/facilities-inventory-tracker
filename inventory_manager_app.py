@@ -82,6 +82,7 @@ with st.form("check_form"):
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
+
     if submitted:
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
@@ -114,37 +115,7 @@ with st.form("check_form"):
 
         # Clear barcode input after submission
         st.session_state["barcode_input"] = ""
-            st.error("Item not found. Please check the barcode.")
-        match = inventory_df[
-            inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
-            == str(barcode).strip().strip("*").lower()
-        ]
-        if not match.empty:
-            index = match.index[0]
-            current_qty = match.at[index, "Running Total"]
-            item_name = match.at[index, "Tool ID"]
-
-            if action_type == "Check Out":
-                if current_qty >= quantity:
-                    inventory_df.at[index, "Running Total"] -= quantity
-                    inventory_df.at[index, "Checked Out Qty"] += quantity
-                    log_action("Checked Out", item_name, barcode, quantity, username)
-                    st.success(f"Checked out {quantity} of {item_name}")
-                else:
-                    st.error("Not enough stock available")
-
-            elif action_type == "Return":
-                inventory_df.at[index, "Running Total"] += quantity
-                inventory_df.at[index, "Checked Out Qty"] -= quantity
-                log_action("Returned", item_name, barcode, quantity, username)
-                st.success(f"Returned {quantity} of {item_name}")
-
-            inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
-            save_inventory(inventory_df)
-        else:
-            st.error("Item not found. Please check the barcode.")
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-
