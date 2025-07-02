@@ -84,8 +84,6 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
     if submitted:
         st.session_state["barcode_input"] = ""
-        st.experimental_rerun()
-
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
             == str(barcode).strip().strip("*").lower()
@@ -113,6 +111,7 @@ with st.form("check_form"):
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
         else:
+            st.error("Item not found. Please check the barcode.")
             st.error("Item not found. Please check the barcode.")
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
