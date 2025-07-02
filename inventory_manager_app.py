@@ -17,6 +17,8 @@ if "username" not in st.session_state:
     st.session_state.username = ""
 if "status_message" not in st.session_state:
     st.session_state.status_message = None
+if "clear_barcode_input" not in st.session_state:
+    st.session_state.clear_barcode_input = False
 
 # Load inventory
 if os.path.exists(EXCEL_FILE):
@@ -74,6 +76,11 @@ st.dataframe(inventory_df)
 st.markdown("---")
 st.subheader("Check Out or Return Items")
 
+# Clear barcode input before rendering if flagged
+if st.session_state.clear_barcode_input:
+    st.session_state.pop("barcode_input", None)
+    st.session_state.clear_barcode_input = False
+
 with st.form("check_form"):
     barcode = st.text_input("Scan or enter item barcode", key="barcode_input")
     st.write("Scanned barcode:", barcode)
@@ -82,8 +89,7 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        # Safely clear the input box
-        st.session_state.pop("barcode_input", None)
+        st.session_state.clear_barcode_input = True  # Trigger clearing on next render
 
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
