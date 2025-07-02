@@ -77,13 +77,14 @@ st.subheader("Check Out or Return Items")
 with st.form("check_form"):
     if "barcode" not in st.session_state:
         st.session_state.barcode = ""
-    barcode = st.text_input("Scan or enter item barcode", value=st.session_state.barcode)
+    barcode = st.text_input("Scan or enter item barcode", key="barcode")
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
     submitted = st.form_submit_button("Submit")
     if submitted:
         st.session_state.barcode = ""
+        st.experimental_rerun()
 
         match = inventory_df[
             inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
@@ -145,4 +146,3 @@ with st.form("check_form"):
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
 st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
-
