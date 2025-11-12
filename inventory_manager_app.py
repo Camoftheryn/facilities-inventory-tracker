@@ -28,9 +28,15 @@ def load_inventory():
         combined = []
         for name, df in xls.items():
             df.columns = df.columns.str.strip()
+            # Normalize Tool ID column to ensure consistency
+            if "Tool ID" in df.columns:
+                df["Tool ID"] = df["Tool ID"].astype(str).str.strip().str.lower()
             df["_sheet"] = name
             combined.append(df)
         inventory_df = pd.concat(combined, ignore_index=True)
+        # Ensure combined Tool IDs are normalized
+        if "Tool ID" in inventory_df.columns:
+            inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
     else:
         inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
     return inventory_df
@@ -100,7 +106,6 @@ st.dataframe(filtered_df, use_container_width=True)
 st.subheader("Edit Inventory Values")
 edited_df = st.data_editor(filtered_df, num_rows="dynamic", use_container_width=True)
 if st.button("Save Edits"):
-    # Update master DataFrame with edited subset
     for idx, row in edited_df.iterrows():
         inventory_df.loc[idx, :] = row
     st.session_state['inventory_df'] = inventory_df
@@ -125,7 +130,10 @@ with st.form("check_form"):
 
     if submitted:
         st.session_state.clear_barcode_input = True
-        match = inventory_df[inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower() == str(barcode).strip().strip("*").lower()]
+        normalized_barcode = str(barcode).strip().strip("*").lower()
+        inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
+        match = inventory_df[inventory_df["Tool ID"] == normalized_barcode]
+
         if not match.empty:
             index = match.index[0]
             current_qty = match.at[index, "Running Total"]
