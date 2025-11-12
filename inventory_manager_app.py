@@ -48,6 +48,11 @@ def load_inventory():
         for name, df in xls.items():
             df = df.copy()
             df.columns = df.columns.str.strip()
+
+            # Normalize all string columns to uppercase and trimmed
+            for col in df.select_dtypes(include=['object']).columns:
+                df[col] = df[col].astype(str).str.strip().str.upper()
+
             toolcol = _find_toolid_column(df)
             if toolcol:
                 df = df.dropna(subset=[toolcol])
@@ -56,13 +61,16 @@ def load_inventory():
             else:
                 df['Tool ID'] = ""
                 df['_raw_toolid'] = ""
+
             df["_sheet"] = name
             combined.append(df)
             sheet_names_loaded.append(name)
+
         if combined:
             inventory_df = pd.concat(combined, ignore_index=True, sort=False)
         else:
             inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total", "_raw_toolid", "_sheet"])
+
         inventory_df['Tool ID'] = inventory_df['Tool ID'].astype(str)
         st.session_state['loaded_sheets'] = sheet_names_loaded
         st.session_state['toolid_lookup'] = inventory_df['Tool ID'].tolist()
@@ -76,6 +84,9 @@ def load_log():
     return pd.DataFrame(columns=["Timestamp", "Action", "Name", "Barcode", "Quantity", "User"])
 
 def save_inventory(df):
+    # Normalize capitalization again before saving
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].astype(str).str.strip().str.upper()
     with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={"keep_vba": True}) as writer:
         df.to_excel(writer, sheet_name='Combined', index=False)
 
