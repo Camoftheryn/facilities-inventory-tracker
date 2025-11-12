@@ -28,15 +28,15 @@ def load_inventory():
         combined = []
         for name, df in xls.items():
             df.columns = df.columns.str.strip()
-            # Normalize Tool ID column to ensure consistency
             if "Tool ID" in df.columns:
                 df["Tool ID"] = df["Tool ID"].astype(str).str.strip().str.lower()
+            else:
+                continue
             df["_sheet"] = name
             combined.append(df)
         inventory_df = pd.concat(combined, ignore_index=True)
-        # Ensure combined Tool IDs are normalized
-        if "Tool ID" in inventory_df.columns:
-            inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
+        inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
+        inventory_df.drop_duplicates(subset=["Tool ID"], inplace=True)
     else:
         inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
     return inventory_df
@@ -132,32 +132,34 @@ with st.form("check_form"):
         st.session_state.clear_barcode_input = True
         normalized_barcode = str(barcode).strip().strip("*").lower()
         inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
-        match = inventory_df[inventory_df["Tool ID"] == normalized_barcode]
+
+        # Try to match exact or partial Tool ID
+        match = inventory_df[inventory_df["Tool ID"].str.contains(normalized_barcode, na=False)]
 
         if not match.empty:
             index = match.index[0]
-            current_qty = match.at[index, "Running Total"]
+            current_qty = match.at[index, "Running Total"] if "Running Total" in match.columns else 0
             item_name = match.at[index, "Tool ID"]
 
             if action_type == "Check Out":
                 if current_qty >= quantity:
-                    inventory_df.at[index, "Running Total"] -= quantity
-                    inventory_df.at[index, "Checked Out Qty"] += quantity
+                    inventory_df.at[index, "Running Total"] = current_qty - quantity
+                    inventory_df.at[index, "Checked Out Qty"] = inventory_df.at[index, "Checked Out Qty"] + quantity if not pd.isna(inventory_df.at[index, "Checked Out Qty"]) else quantity
                     log_action("Checked Out", item_name, barcode, quantity, username)
                     st.session_state.status_message = ("success", f"Checked out {quantity} of {item_name}")
                 else:
                     st.session_state.status_message = ("error", "Not enough stock available")
 
             elif action_type == "Return":
-                inventory_df.at[index, "Running Total"] += quantity
-                inventory_df.at[index, "Checked Out Qty"] -= quantity
+                inventory_df.at[index, "Running Total"] = current_qty + quantity
+                inventory_df.at[index, "Checked Out Qty"] = inventory_df.at[index, "Checked Out Qty"] - quantity if not pd.isna(inventory_df.at[index, "Checked Out Qty"]) else 0
                 log_action("Returned", item_name, barcode, quantity, username)
                 st.session_state.status_message = ("success", f"Returned {quantity} of {item_name}")
 
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
         else:
-            st.session_state.status_message = ("error", "Item not found. Please check the barcode.")
+            st.session_state.status_message = ("error", f"Item '{barcode}' not found in any sheet. Please verify spelling or check the Excel file.")
 
 if st.session_state.status_message:
     msg_type, msg_text = st.session_state.status_message
