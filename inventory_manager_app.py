@@ -30,13 +30,10 @@ def load_inventory():
             df.columns = df.columns.str.strip()
             if "Tool ID" in df.columns:
                 df["Tool ID"] = df["Tool ID"].astype(str).str.strip().str.lower()
-            else:
-                continue
             df["_sheet"] = name
             combined.append(df)
         inventory_df = pd.concat(combined, ignore_index=True)
         inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
-        inventory_df.drop_duplicates(subset=["Tool ID"], inplace=True)
     else:
         inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
     return inventory_df
@@ -133,8 +130,10 @@ with st.form("check_form"):
         normalized_barcode = str(barcode).strip().strip("*").lower()
         inventory_df["Tool ID"] = inventory_df["Tool ID"].astype(str).str.strip().str.lower()
 
-        # Try to match exact or partial Tool ID
-        match = inventory_df[inventory_df["Tool ID"].str.contains(normalized_barcode, na=False)]
+        # Match exactly first; if not found, try partial
+        match = inventory_df[inventory_df["Tool ID"] == normalized_barcode]
+        if match.empty:
+            match = inventory_df[inventory_df["Tool ID"].str.contains(normalized_barcode, na=False)]
 
         if not match.empty:
             index = match.index[0]
@@ -159,7 +158,10 @@ with st.form("check_form"):
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
         else:
-            st.session_state.status_message = ("error", f"Item '{barcode}' not found in any sheet. Please verify spelling or check the Excel file.")
+            # Debugging hint output
+            st.write("### Debug Info: Tool IDs available:")
+            st.write(inventory_df["Tool ID"].unique()[:50])
+            st.session_state.status_message = ("error", f"Item '{barcode}' not found in any sheet. Please verify spelling or check normalization.")
 
 if st.session_state.status_message:
     msg_type, msg_text = st.session_state.status_message
