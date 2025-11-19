@@ -13,7 +13,7 @@ LOG_FILE = "inventory_log.csv"
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
 
 # -----------------------------
-# ADDED: Forgiving normalization function
+# NORMALIZATION FUNCTION
 # -----------------------------
 def normalize_code(value):
     """Clean and normalize barcode + Tool ID to allow flexible matching."""
@@ -27,13 +27,13 @@ def normalize_code(value):
     for c in remove_chars:
         value = value.replace(c, "")
 
-    # Remove leading zeros (helpful for UPC/EAN)
+    # Remove leading zeros (UPC/EAN)
     value = value.lstrip("0")
 
     return value
 
 
-# Initialize session state variables early
+# Session state
 if "username" not in st.session_state:
     st.session_state.username = ""
 if "status_message" not in st.session_state:
@@ -48,20 +48,26 @@ if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
     inventory_df.columns = inventory_df.columns.str.strip()
 else:
-    inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
+    inventory_df = pd.DataFrame(columns=[
+        "Tool ID", "check in", "check out", "Total Count",
+        "Checked Out Qty", "Running Total"
+    ])
 
-# Add normalized ID column to inventory
+# Add normalized column
 inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
 
 # Load log
 if os.path.exists(LOG_FILE):
     log_df = pd.read_csv(LOG_FILE)
 else:
-    log_df = pd.DataFrame(columns=["Timestamp", "Action", "Name", "Barcode", "Quantity", "User"])
+    log_df = pd.DataFrame(columns=[
+        "Timestamp", "Action", "Name", "Barcode", "Quantity", "User"
+    ])
 
 # Save inventory and logs
 def save_inventory(df):
-    with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a', if_sheet_exists='replace', engine_kwargs={"keep_vba": True}) as writer:
+    with pd.ExcelWriter(EXCEL_FILE, engine='openpyxl', mode='a',
+                        if_sheet_exists='replace', engine_kwargs={"keep_vba": True}) as writer:
         df.to_excel(writer, index=False)
 
 def log_action(action, name, barcode, qty, user):
@@ -84,7 +90,8 @@ st.title("Inventory & Supply Room Manager")
 # User name input
 st.sidebar.subheader("User Access")
 
-input_name = st.sidebar.text_input("Enter your name to continue", value=st.session_state.username)
+input_name = st.sidebar.text_input("Enter your name to continue",
+                                   value=st.session_state.username)
 if st.sidebar.button("Submit Name"):
     if input_name.strip():
         st.session_state.username = input_name.strip()
@@ -96,7 +103,7 @@ if not st.session_state.username:
 
 username = st.session_state.username
 
-# Inventory interaction interface
+# Inventory table
 st.subheader("Inventory Table")
 st.dataframe(inventory_df)
 
@@ -110,7 +117,9 @@ if st.session_state.clear_barcode_input:
     st.rerun()
 
 with st.form("check_form"):
-    barcode = st.text_input("Scan or enter item barcode", key="barcode_input", value=st.session_state.barcode_input)
+    barcode = st.text_input("Scan or enter item barcode",
+                            key="barcode_input",
+                            value=st.session_state.barcode_input)
     st.write("Scanned barcode:", barcode)
     action_type = st.selectbox("Action", ["Check Out", "Return"])
     quantity = st.number_input("Quantity", min_value=1, step=1)
@@ -120,13 +129,28 @@ with st.form("check_form"):
         st.session_state.clear_barcode_input = True
 
         # ---------------------------------
-        # UPDATED MATCHING LOGIC (forgiving)
+        # IMPROVED MATCHING LOGIC
         # ---------------------------------
         normalized_barcode = normalize_code(barcode)
-
         inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
 
+        # 1. Exact match
         match = inventory_df[inventory_df["Normalized_ID"] == normalized_barcode]
+
+        # 2. Prefix/suffix match
+        if match.empty:
+            match = inventory_df[
+                inventory_df["Normalized_ID"].str.startswith(normalized_barcode) |
+                inventory_df["Normalized_ID"].str.endswith(normalized_barcode) |
+                normalized_barcode.startswith(inventory_df["Normalized_ID"]) |
+                normalized_barcode.endswith(inventory_df["Normalized_ID"])
+            ]
+
+        # 3. Contains match
+        if match.empty:
+            match = inventory_df[
+                inventory_df["Normalized_ID"].str.contains(normalized_barcode)
+            ]
 
         if not match.empty:
             index = match.index[0]
@@ -138,7 +162,10 @@ with st.form("check_form"):
                     inventory_df.at[index, "Running Total"] -= quantity
                     inventory_df.at[index, "Checked Out Qty"] += quantity
                     log_action("Checked Out", item_name, barcode, quantity, username)
-                    st.session_state.status_message = ("success", f"Checked out {quantity} of {item_name}")
+                    st.session_state.status_message = (
+                        "success",
+                        f"Checked out {quantity} of {item_name}"
+                    )
                 else:
                     st.session_state.status_message = ("error", "Not enough stock available")
 
@@ -146,14 +173,21 @@ with st.form("check_form"):
                 inventory_df.at[index, "Running Total"] += quantity
                 inventory_df.at[index, "Checked Out Qty"] -= quantity
                 log_action("Returned", item_name, barcode, quantity, username)
-                st.session_state.status_message = ("success", f"Returned {quantity} of {item_name}")
+                st.session_state.status_message = (
+                    "success",
+                    f"Returned {quantity} of {item_name}"
+                )
 
             inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
             save_inventory(inventory_df)
-        else:
-            st.session_state.status_message = ("error", "Item not found. Please check the barcode.")
 
-# Show status message
+        else:
+            st.session_state.status_message = (
+                "error",
+                "Item not found. Please check the barcode."
+            )
+
+# Status message
 if st.session_state.status_message:
     msg_type, msg_text = st.session_state.status_message
     if msg_type == "success":
