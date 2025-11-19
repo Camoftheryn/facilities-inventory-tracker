@@ -129,32 +129,34 @@ with st.form("check_form"):
         st.session_state.clear_barcode_input = True
 
         # ---------------------------------
-        # IMPROVED MATCHING LOGIC (ERROR-FREE)
+        # FINAL, ERROR-FREE MATCHING LOGIC
         # ---------------------------------
         normalized_barcode = normalize_code(barcode)
         inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
 
+        norm_ids = inventory_df["Normalized_ID"].fillna("")
+
         # 1. Exact match
-        match = inventory_df[inventory_df["Normalized_ID"] == normalized_barcode]
+        match = inventory_df[norm_ids == normalized_barcode]
 
-        # 2. Prefix/suffix match — vectorized & safe
+        # 2. Prefix/suffix match (safe with apply)
         if match.empty:
-            norm_ids = inventory_df["Normalized_ID"].fillna("")
-
             match = inventory_df[
                 norm_ids.str.startswith(normalized_barcode) |
                 norm_ids.str.endswith(normalized_barcode) |
-                normalized_barcode.startswith(norm_ids) |
-                normalized_barcode.endswith(norm_ids)
+                norm_ids.apply(lambda x: normalized_barcode.startswith(x)) |
+                norm_ids.apply(lambda x: normalized_barcode.endswith(x))
             ]
 
         # 3. Contains match
         if match.empty:
             match = inventory_df[
-                inventory_df["Normalized_ID"].str.contains(normalized_barcode, na=False)
+                norm_ids.str.contains(normalized_barcode, na=False)
             ]
 
-        # ---- END MATCHING ----
+        # ---------------------------------
+        # END MATCHING LOGIC
+        # ---------------------------------
 
         if not match.empty:
             index = match.index[0]
@@ -162,44 +164,3 @@ with st.form("check_form"):
             item_name = match.at[index, "Tool ID"]
 
             if action_type == "Check Out":
-                if current_qty >= quantity:
-                    inventory_df.at[index, "Running Total"] -= quantity
-                    inventory_df.at[index, "Checked Out Qty"] += quantity
-                    log_action("Checked Out", item_name, barcode, quantity, username)
-                    st.session_state.status_message = (
-                        "success",
-                        f"Checked out {quantity} of {item_name}"
-                    )
-                else:
-                    st.session_state.status_message = ("error", "Not enough stock available")
-
-            elif action_type == "Return":
-                inventory_df.at[index, "Running Total"] += quantity
-                inventory_df.at[index, "Checked Out Qty"] -= quantity
-                log_action("Returned", item_name, barcode, quantity, username)
-                st.session_state.status_message = (
-                    "success",
-                    f"Returned {quantity} of {item_name}"
-                )
-
-            inventory_df.at[index, "Last Updated"] = datetime.now().strftime("%Y-%m-%d")
-            save_inventory(inventory_df)
-
-        else:
-            st.session_state.status_message = (
-                "error",
-                "Item not found. Please check the barcode."
-            )
-
-# Status message
-if st.session_state.status_message:
-    msg_type, msg_text = st.session_state.status_message
-    if msg_type == "success":
-        st.success(msg_text)
-    elif msg_type == "error":
-        st.error(msg_text)
-    st.session_state.status_message = None
-
-st.markdown("---")
-st.subheader("Log of Checkouts and Returns")
-st.dataframe(log_df.sort_values(by="Timestamp", ascending=False))
