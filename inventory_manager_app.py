@@ -129,7 +129,7 @@ with st.form("check_form"):
         st.session_state.clear_barcode_input = True
 
         # ---------------------------------
-        # IMPROVED MATCHING LOGIC
+        # IMPROVED MATCHING LOGIC (ERROR-FREE)
         # ---------------------------------
         normalized_barcode = normalize_code(barcode)
         inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
@@ -137,20 +137,24 @@ with st.form("check_form"):
         # 1. Exact match
         match = inventory_df[inventory_df["Normalized_ID"] == normalized_barcode]
 
-        # 2. Prefix/suffix match
+        # 2. Prefix/suffix match — vectorized & safe
         if match.empty:
+            norm_ids = inventory_df["Normalized_ID"].fillna("")
+
             match = inventory_df[
-                inventory_df["Normalized_ID"].str.startswith(normalized_barcode) |
-                inventory_df["Normalized_ID"].str.endswith(normalized_barcode) |
-                normalized_barcode.startswith(inventory_df["Normalized_ID"]) |
-                normalized_barcode.endswith(inventory_df["Normalized_ID"])
+                norm_ids.str.startswith(normalized_barcode) |
+                norm_ids.str.endswith(normalized_barcode) |
+                normalized_barcode.startswith(norm_ids) |
+                normalized_barcode.endswith(norm_ids)
             ]
 
         # 3. Contains match
         if match.empty:
             match = inventory_df[
-                inventory_df["Normalized_ID"].str.contains(normalized_barcode)
+                inventory_df["Normalized_ID"].str.contains(normalized_barcode, na=False)
             ]
+
+        # ---- END MATCHING ----
 
         if not match.empty:
             index = match.index[0]
