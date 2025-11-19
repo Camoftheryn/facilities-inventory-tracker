@@ -6,11 +6,32 @@ import openpyxl
 import warnings
 
 # File paths
-EXCEL_FILE = "INVTRCKR.xlsm"  # updated for macro support
+EXCEL_FILE = "INVTRCKR.xlsm"
 LOG_FILE = "inventory_log.csv"
 
 # Suppress openpyxl warning
 warnings.filterwarnings("ignore", category=UserWarning, module="openpyxl")
+
+# -----------------------------
+# ADDED: Forgiving normalization function
+# -----------------------------
+def normalize_code(value):
+    """Clean and normalize barcode + Tool ID to allow flexible matching."""
+    if pd.isna(value):
+        return ""
+
+    value = str(value).strip().lower()
+
+    # Remove common inconsistent characters
+    remove_chars = [" ", "-", "_", "*", "/", "\\", ".", ":", ";"]
+    for c in remove_chars:
+        value = value.replace(c, "")
+
+    # Remove leading zeros (helpful for UPC/EAN)
+    value = value.lstrip("0")
+
+    return value
+
 
 # Initialize session state variables early
 if "username" not in st.session_state:
@@ -25,9 +46,12 @@ if "barcode_input" not in st.session_state:
 # Load inventory
 if os.path.exists(EXCEL_FILE):
     inventory_df = pd.read_excel(EXCEL_FILE, engine="openpyxl")
-    inventory_df.columns = inventory_df.columns.str.strip()  # Clean column names
+    inventory_df.columns = inventory_df.columns.str.strip()
 else:
     inventory_df = pd.DataFrame(columns=["Tool ID", "check in", "check out", "Total Count", "Checked Out Qty", "Running Total"])
+
+# Add normalized ID column to inventory
+inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
 
 # Load log
 if os.path.exists(LOG_FILE):
@@ -52,6 +76,7 @@ def log_action(action, name, barcode, qty, user):
     }
     log_df = pd.concat([log_df, pd.DataFrame([log_entry])], ignore_index=True)
     log_df.to_csv(LOG_FILE, index=False)
+
 
 # Title
 st.title("Inventory & Supply Room Manager")
@@ -92,12 +117,17 @@ with st.form("check_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        st.session_state.clear_barcode_input = True  # Trigger clearing on next render
+        st.session_state.clear_barcode_input = True
 
-        match = inventory_df[
-            inventory_df["Tool ID"].astype(str).str.strip().str.strip("*").str.lower()
-            == str(barcode).strip().strip("*").lower()
-        ]
+        # ---------------------------------
+        # UPDATED MATCHING LOGIC (forgiving)
+        # ---------------------------------
+        normalized_barcode = normalize_code(barcode)
+
+        inventory_df["Normalized_ID"] = inventory_df["Tool ID"].apply(normalize_code)
+
+        match = inventory_df[inventory_df["Normalized_ID"] == normalized_barcode]
+
         if not match.empty:
             index = match.index[0]
             current_qty = match.at[index, "Running Total"]
@@ -123,14 +153,14 @@ with st.form("check_form"):
         else:
             st.session_state.status_message = ("error", "Item not found. Please check the barcode.")
 
-# Show status message if available
+# Show status message
 if st.session_state.status_message:
     msg_type, msg_text = st.session_state.status_message
     if msg_type == "success":
         st.success(msg_text)
     elif msg_type == "error":
         st.error(msg_text)
-    st.session_state.status_message = None  # Clear after showing
+    st.session_state.status_message = None
 
 st.markdown("---")
 st.subheader("Log of Checkouts and Returns")
