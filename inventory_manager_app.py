@@ -72,7 +72,7 @@ if not st.session_state.username:
 username = st.session_state.username
 
 # Inventory interaction interface
-st.subheader("Editable Inventory Table")
+st.subheader("Inventory Table")
 
 edited_df = st.data_editor(
     inventory_df,
