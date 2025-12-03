@@ -72,8 +72,21 @@ if not st.session_state.username:
 username = st.session_state.username
 
 # Inventory interaction interface
-st.subheader("Inventory Table")
-st.dataframe(inventory_df)
+st.subheader("Editable Inventory Table")
+
+edited_df = st.data_editor(
+    inventory_df,
+    num_rows="dynamic",
+    use_container_width=True,
+    key="editable_inventory"
+)
+
+# Save button for manual edits
+if st.button("Save Changes to Excel"):
+    save_inventory(edited_df)
+    st.success("Inventory updated and saved!")
+    inventory_df = edited_df.copy()
+
 
 st.markdown("---")
 st.subheader("Check Out or Return Items")
