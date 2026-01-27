@@ -79,7 +79,7 @@ if st.session_state.inventory_df is None:
 inventory_df = st.session_state.inventory_df
 
 # -------------------- UI --------------------
-st.title("📦 Inventory & Supply Room Manager")
+st.title("Inventory & Supply Room Manager")
 
 # ---------- USER LOGIN ----------
 st.sidebar.subheader("User Access")
@@ -107,7 +107,7 @@ edited_df = st.data_editor(
     key="inventory_editor"
 )
 
-if st.button("💾 Save Changes"):
+if st.button("Save Changes"):
     save_inventory(edited_df)
     st.session_state.inventory_df = edited_df.copy()
     st.success("Inventory saved successfully!")
@@ -115,7 +115,7 @@ if st.button("💾 Save Changes"):
 
 # ---------- CHECKOUT / RETURN ----------
 st.divider()
-st.subheader("🔄 Check Out / Return Items")
+st.subheader("Check Out / Return Items")
 
 if st.session_state.clear_barcode:
     st.session_state.barcode_input = ""
@@ -170,7 +170,7 @@ if submit:
 
 # ---------- LOG VIEW ----------
 st.divider()
-st.subheader("📋 Transaction Log")
+st.subheader("Transaction Log")
 
 log_df = load_log()
 st.dataframe(
